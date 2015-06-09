@@ -15,9 +15,20 @@ class ConsoleApp
 	private $banner = 'Console App';
 	private $commands = [];
 
-	public function __construct()
+	public function __construct($registerHelp = true)
 	{
-
+		$app = $this;
+		if ($registerHelp) {
+			$this->registerCommand('help', '', function($args) use (&$app) {
+				if ($args && $app->isCommand($args)) {
+					$app->printUsage($args);
+				} else {
+					foreach ($app->commands as $command => $data) {
+						$app->printUsage($command);
+					}
+				}
+			});
+		}
 	}
 
 	public function prompt($prompt = null)
@@ -40,7 +51,7 @@ class ConsoleApp
 
 	public function registerCommand($command, $args, $function)
 	{
-		if (!array_key_exists($command, $this->commands)) {
+		if (!$this->isCommand($command)) {
 			$this->commands[$command]['func'] = $function;
 			$this->commands[$command]['args'] = $args;
 			$this->commands[$command]['usage'] = '';
@@ -53,16 +64,16 @@ class ConsoleApp
 
 	public function setUsage($command, $usage)
 	{
-		if (array_key_exists($command, $this->commands)) {
+		if ($this->isCommand($command)) {
 			$this->commands[$command]['usage'] = $usage;
 		}
 	}
 
 	public function executeCommand($command, $args = '')
 	{
-		if (array_key_exists($command, $this->commands)) {
+		if ($this->isCommand($command)) {
 			if ($this->commands[$command]['args'] && !$args) {
-				echo 'Usage: '.$this->commands[$command]['usage'];
+				$this->printUsage($command);
 			}
 			return $this->commands[$command]['func']($args);
 		} else {
@@ -93,18 +104,23 @@ class ConsoleApp
 		        $args = '';
 		    }
 
-		    if (array_key_exists($command, $this->commands)) {
+		    if ($this->isCommand($command)) {
 				if ($this->commands[$command]['args'] && !$args) {
-					echo 'Usage: '.$this->commands[$command]['usage']."\n";
+					$this->printUsage($command);
 					continue;
 				}
 				$this->commands[$command]['func']($args);
-				$this->echoNewLine(2);
+				$this->echoNewLine();
 			} else {
 				echo "Command '{$command}' not recognized";
             	$this->echoNewLine(2);
 			}
 		}
+	}
+
+	public function isCommand($command)
+	{
+		return array_key_exists($command, $this->commands);
 	}
 
 	private function readStdIn($prompt = null)
@@ -131,5 +147,12 @@ class ConsoleApp
 	    for ($i = 0; $i < $times; $i++) {
 	        echo "\n";
 	    }
+	}
+
+	private function printUsage($command)
+	{
+		if ($this->commands[$command]['usage']) {
+			echo 'Usage: '.$this->commands[$command]['usage']."\n";
+		}
 	}
 }
