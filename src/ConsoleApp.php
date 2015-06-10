@@ -14,17 +14,45 @@ class ConsoleApp
 	private $prompt = 'console> ';
 	private $banner = 'Console App';
 	private $commands = [];
+	private $commandHistory = [];
+	private $defaultOptions = [
+		"registerHelp" => true,
+		"registerHistory" => true
+	];
 
-	public function __construct($registerHelp = true)
+	public function __construct($options = [])
 	{
 		$app = $this;
-		if ($registerHelp) {
-			$this->registerCommand('help', '', function($args) use (&$app) {
+		$options = array_merge($options, $this->defaultOptions);
+
+		if ($options['registerHelp']) {
+			if ($options['registerHelp'] === true) {
+				$options['registerHelp'] = 'help';
+			}
+			$this->registerCommand($options['registerHelp'], '', function($args) use (&$app) {
 				if ($args && $app->isCommand($args)) {
 					$app->printUsage($args);
 				} else {
 					foreach ($app->commands as $command => $data) {
 						$app->printUsage($command);
+					}
+				}
+			});
+		}
+
+		if ($options['registerHistory']) {
+			if ($options['registerHistory'] === true) {
+				$options['registerHistory'] = 'history';
+			}
+			$this->registerCommand($options['registerHistory'], '', function($args) use (&$app) {
+				if ($args) {
+					if (isset($app->commandHistory[$args-1])) {
+						$app->executeCommand($app->commandHistory[$args-1]);
+					}
+				} else {
+					foreach ($app->commandHistory as $id => $command) {
+						$id++;
+						echo "{$id} {$command}\n";
 					}
 				}
 			});
@@ -92,7 +120,7 @@ class ConsoleApp
 		    if (!$statement) {
 		        continue;
 		    }
-		    $this->readlineAddHistory($statement);
+		    $this->addCommandHistory($statement);
 
 		    $statement = explode(' ', $statement, 2);
 
@@ -126,19 +154,14 @@ class ConsoleApp
 	private function readStdIn($prompt = null)
 	{
 		$prompt = $prompt ?: $this->prompt;
-
-		if (PHP_OS == 'WINNT') {
-	    	echo $prompt;
-	    	return stream_get_line(STDIN, 1024, PHP_EOL);
-		} else {
-			return readline($prompt);
-		}
+		echo $prompt;
+		return stream_get_line(STDIN, 1024, PHP_EOL);
 	}
 
-	private function readlineAddHistory($line)
+	private function addCommandHistory($line)
 	{
-		if (PHP_OS != 'WINNT') {
-	    	readline_add_history($line);
+		if (count($this->commandHistory) == 0 || $line !== $this->commandHistory[count($this->commandHistory)-1]) {
+			$this->commandHistory []= $line;
 		}
 	}
 
