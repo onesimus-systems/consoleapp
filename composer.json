@@ -11,13 +11,17 @@
         "role": "Developer"
     }],
 
+    "require": {
+        "onesimus-systems/osreadline": "dev-master"
+    },
+
     "require-dev": {
         "phpunit/phpunit": "4.7.*"
     },
 
     "autoload": {
         "psr-4": {
-            "onesimus\\console\\": "src/"
+            "Onesimus\\Console\\": "src/"
         }
     }
 }

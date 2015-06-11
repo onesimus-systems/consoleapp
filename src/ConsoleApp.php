@@ -1,13 +1,18 @@
 <?php
 /**
- * Lexicon Manager
+ * Console Application Framework
  *
- * @license MIT
+ * @license BSD 3-Clause
  * @author Lee Keitel
  *
- * Organize and manage a lexicon for a constructed or even natural language.
+ * Quickly create a PHP console application by registering commands and
+ * their callback functions.
  */
-namespace onesimus\console;
+namespace Onesimus\Console;
+
+require __DIR__.'/../vendor/autoload.php';
+
+use Onesimus\Readline\Readline;
 
 class ConsoleApp
 {
@@ -19,6 +24,8 @@ class ConsoleApp
 		"registerHelp" => true,
 		"registerHistory" => true
 	];
+
+	private $readline;
 
 	public function __construct($options = [])
 	{
@@ -57,24 +64,28 @@ class ConsoleApp
 				}
 			});
 		}
+
+		$this->readline = new Readline();
 	}
 
-	public function prompt($prompt = null)
+	public function setPrompt($prompt = '')
 	{
-		if ($prompt === null) {
-			return $this->prompt;
-		} else {
-			$this->prompt = $prompt;
-		}
+		$this->prompt = $prompt;
 	}
 
-	public function banner($banner = null)
+	public function getPrompt()
 	{
-		if ($banner === null) {
-			return $this->banner;
-		} else {
-			$this->banner = $banner;
-		}
+		return $this->prompt;
+	}
+
+	public function setBanner($banner = '')
+	{
+		$this->banner = $banner;
+	}
+
+	public function getBanner()
+	{
+		return $this->banner;
 	}
 
 	public function registerCommand($command, $args, $function)
@@ -97,18 +108,26 @@ class ConsoleApp
 		}
 	}
 
+	public function getUsage($command)
+	{
+		if ($this->isCommand($command)) {
+			return $this->commands[$command]['usage'];
+		}
+	}
+
 	public function executeCommand($command, $args = '')
 	{
 		if ($this->isCommand($command)) {
 			if ($this->commands[$command]['args'] && !$args) {
 				$this->printUsage($command);
+			} else {
+				$this->commands[$command]['func']($args);
+				return true;
 			}
-			return $this->commands[$command]['func']($args);
 		} else {
-			echo "Command '{$command}' not recognized\n";
+			echo "Command '\033[34m{$command}\033[39m' not recognized\n";
 		}
-
-		return true;
+		return false;
 	}
 
 	public function run()
@@ -132,17 +151,7 @@ class ConsoleApp
 		        $args = '';
 		    }
 
-		    if ($this->isCommand($command)) {
-				if ($this->commands[$command]['args'] && !$args) {
-					$this->printUsage($command);
-					continue;
-				}
-				$this->commands[$command]['func']($args);
-				$this->echoNewLine();
-			} else {
-				echo "Command '{$command}' not recognized";
-            	$this->echoNewLine(2);
-			}
+		    $this->executeCommand($command, $args);
 		}
 	}
 
@@ -151,11 +160,10 @@ class ConsoleApp
 		return array_key_exists($command, $this->commands);
 	}
 
-	private function readStdIn($prompt = null)
+	public function readStdIn($prompt = null)
 	{
-		$prompt = $prompt ?: $this->prompt;
-		echo $prompt;
-		return stream_get_line(STDIN, 1024, PHP_EOL);
+		$prompt = $prompt !== null ? $prompt : $this->prompt;
+		return $this->readline->readLine($prompt);
 	}
 
 	private function addCommandHistory($line)
