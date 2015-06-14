@@ -122,6 +122,7 @@ class ConsoleApp
 				$this->printUsage($command);
 			} else {
 				$this->commands[$command]['func']($args);
+				$this->echoNewLine();
 				return true;
 			}
 		} else {
